@@ -32,25 +32,24 @@
 
 #define LED_STRIP_PIN 22
 
-const char* ssid     = "Stratum0";
-const char* password = "stehtinderinfoecke";
+const char* ssid     = "xxx";
+const char* password = "xxx";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 String mqtt_hostname = "";
 IPAddress mqtt_server;
-SmartLed leds( LED_WS2812, 91, 22, 0, SingleBuffer );
+SmartLed leds(LED_WS2812, 91, 22, 0, SingleBuffer);
 
-
-void pwmSetupChannels(unsigned int numChannels, unsigned int frequency = PWM_FREQ, unsigned int resolution = PWM_RES){
-  for(int i = 0; i < numChannels; i++){
-    if(ledcSetup(i, frequency, resolution) == 0) {
+void pwmSetupChannels(unsigned int numChannels, unsigned int frequency = PWM_FREQ, unsigned int resolution = PWM_RES) {
+  for (int i = 0; i < numChannels; i++) {
+    if (ledcSetup(i, frequency, resolution) == 0) {
       Serial.println("Error setup of pwm-channel: " + String(i) + " failed!");
     }
   }
 }
 
-void attachPwmPins(){
+void attachPwmPins() {
   ledcAttachPin(SEG1, 0);
   ledcAttachPin(SEG2, 1);
   ledcAttachPin(SEG3, 2);
@@ -59,28 +58,27 @@ void attachPwmPins(){
   ledcAttachPin(SEG6, 5);
   ledcAttachPin(SEG7, 6);
   ledcAttachPin(SEG8, 7);
-  for(int i = 0; i < 8; i++){
-    ledcWrite(i, 0); 
+  for (int i = 0; i < 8; i++) {
+    ledcWrite(i, 0);
   }
 }
 
-void setBrightness(int index, int brightness){
-  if(index < 1 || index > 11) return;
-  if(brightness < 0 || brightness >= pow(2, PWM_RES)) return;
-  ledcWrite(index-1, brightness); 
+void setBrightness(int index, int brightness) {
+  if (index < 1 || index > 11) return;
+  if (brightness < 0 || brightness >= pow(2, PWM_RES)) return;
+  ledcWrite(index - 1, brightness);
 }
 
-void setLed(int index, Rgb color){
+void setLed(int index, Rgb color) {
   leds[index] = color;
   leds.show();
 }
-
 
 void setup() {
   Serial.begin(115200);
   delay(100);
   Serial.print("Connecting to WiFi.");
-  
+
   pwmSetupChannels(8);
   attachPwmPins();
   setBrightness(5, 48);
@@ -114,12 +112,12 @@ void setup() {
     Serial.println("No MQTT service found");
     ESP.restart();
   } else {
-    if(mqtt_hostname.length() == 0){ 
+    if (mqtt_hostname.length() == 0) {
       mqtt_hostname = MDNS.hostname(0);
       mqtt_server = MDNS.IP(0);
       Serial.print("Found " + String(n) + " mqtt services, connecting to " + mqtt_hostname + "@" + mqtt_server + " .");
     } else {
-      
+
     }
   }
   setBrightness(5, 512);
@@ -145,60 +143,60 @@ void setup() {
   client.publish("birdfi/pwm_freq", charBuf, true);
   String(PWM_RES).toCharArray(charBuf, 10);
   client.publish("birdfi/pwm_res", charBuf, true);
-  
-  for ( int i = 0; i != 91; i++ )
-      leds[ i ] = Rgb(0,0,0);
+
+  for (int i = 0; i != 91; i++)
+    leds[i] = Rgb(0, 0, 0);
   leds.show();
 }
 
 void loop() {
-  if(!client.loop()){
+  if (!client.loop()) {
     ESP.restart();
   }
 
 }
 
-void browseService(const char * service, const char * proto) {
+void browseService(const char * service,
+  const char * proto) {
 
 }
 
-void callback(char* topic, byte* payload, unsigned int length){
-//  Serial.print("Message arrived [");
-//  Serial.print(topic);
-//  Serial.print("] ");
+void callback(char * topic, byte * payload, unsigned int length) {
+  //  Serial.print("Message arrived [");
+  //  Serial.print(topic);
+  //  Serial.print("] ");
   String sPayload;
   for (int i = 0; i < length; i++) {
-//    Serial.print((char)payload[i]);
-    sPayload.concat((char)payload[i]);
+    //    Serial.print((char)payload[i]);
+    sPayload.concat((char) payload[i]);
   }
-//  Serial.println();
+  //  Serial.println();
   String sTopic = (String) topic;
   int firstSlashPos = sTopic.indexOf("/");
-  int secondSlashPos = sTopic.indexOf("/", firstSlashPos+1);
+  int secondSlashPos = sTopic.indexOf("/", firstSlashPos + 1);
   String action;
-  if(firstSlashPos && secondSlashPos) {
-    action = sTopic.substring(firstSlashPos+1, secondSlashPos);
+  if (firstSlashPos && secondSlashPos) {
+    action = sTopic.substring(firstSlashPos + 1, secondSlashPos);
   }
-  if(action.equalsIgnoreCase("setBrightness")){
-    int ledIndex = sTopic.substring(secondSlashPos+1).toInt();
+  if (action.equalsIgnoreCase("setBrightness")) {
+    int ledIndex = sTopic.substring(secondSlashPos + 1).toInt();
     int brightness = sPayload.toInt();
-//    Serial.println("Action: setBrightness, ledIndex: " + String(ledIndex) + ", brightness: " + String(brightness));
-    if(ledIndex != 0){
+    //    Serial.println("Action: setBrightness, ledIndex: " + String(ledIndex) + ", brightness: " + String(brightness));
+    if (ledIndex != 0) {
       setBrightness(ledIndex, brightness);
     }
-  } else if(action.equalsIgnoreCase("setLed")){
-    int ledIndex = sTopic.substring(secondSlashPos+1).toInt();
-    int commaPos= sPayload.indexOf(",");
+  } else if (action.equalsIgnoreCase("setLed")) {
+    int ledIndex = sTopic.substring(secondSlashPos + 1).toInt();
+    int commaPos = sPayload.indexOf(",");
     int r = sPayload.substring(0, commaPos).toInt();
     int lastCommaPos = commaPos;
-    commaPos = sPayload.indexOf(",", lastCommaPos+1);
-    int b = sPayload.substring(lastCommaPos+1, commaPos).toInt();
+    commaPos = sPayload.indexOf(",", lastCommaPos + 1);
+    int b = sPayload.substring(lastCommaPos + 1, commaPos).toInt();
     lastCommaPos = commaPos;
-    commaPos = sPayload.indexOf(",", lastCommaPos+1);
-    int g = sPayload.substring(lastCommaPos+1, commaPos).toInt();
+    commaPos = sPayload.indexOf(",", lastCommaPos + 1);
+    int g = sPayload.substring(lastCommaPos + 1, commaPos).toInt();
 
-//    Serial.println("Action: setBrightness, ledIndex: " + String(ledIndex) + ", brightness: " + String(brightness));
-    setLed(ledIndex, Rgb(r,g,b));
+    //    Serial.println("Action: setBrightness, ledIndex: " + String(ledIndex) + ", brightness: " + String(brightness));
+    setLed(ledIndex, Rgb(r, g, b));
   }
 }
-
